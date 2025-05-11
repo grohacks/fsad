@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Appointment Creation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Direct Appointment Creation</h1>
+    <p>This form bypasses all security and validation to test appointment creation directly.</p>
+    
+    <div class="form-group">
+        <button id="testButton">Test Connection</button>
+    </div>
+    
+    <form id="appointmentForm">
+        <div class="form-group">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <input type="text" id="description" name="description">
+        </div>
+        <div class="form-group">
+            <label for="appointmentDateTime">Appointment Date/Time:</label>
+            <input type="datetime-local" id="appointmentDateTime" name="appointmentDateTime" required>
+        </div>
+        <div class="form-group">
+            <label for="doctorId">Doctor ID:</label>
+            <input type="number" id="doctorId" name="doctorId" required>
+        </div>
+        <div class="form-group">
+            <label for="patientId">Patient ID:</label>
+            <input type="number" id="patientId" name="patientId" required>
+        </div>
+        <div class="form-group">
+            <label for="isVideoConsultation">Video Consultation:</label>
+            <select id="isVideoConsultation" name="isVideoConsultation">
+                <option value="false">No</option>
+                <option value="true">Yes</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="meetingLink">Meeting Link:</label>
+            <input type="text" id="meetingLink" name="meetingLink">
+        </div>
+        <div class="form-group">
+            <label for="notes">Notes:</label>
+            <input type="text" id="notes" name="notes">
+        </div>
+        <button type="submit">Create Appointment</button>
+    </form>
+    
+    <h2>Result:</h2>
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('testButton').addEventListener('click', function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing connection...';
+            
+            fetch('http://localhost:8080/direct/test')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = 'Error: ' + error.message;
+                    console.error('Error:', error);
+                });
+        });
+    
+        document.getElementById('appointmentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                appointmentDateTime: new Date(document.getElementById('appointmentDateTime').value).toISOString(),
+                doctorId: parseInt(document.getElementById('doctorId').value),
+                patientId: parseInt(document.getElementById('patientId').value),
+                isVideoConsultation: document.getElementById('isVideoConsultation').value === 'true',
+                meetingLink: document.getElementById('meetingLink').value,
+                notes: document.getElementById('notes').value
+            };
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Sending request...';
+            
+            fetch('http://localhost:8080/direct/appointment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>

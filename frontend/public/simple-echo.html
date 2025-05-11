@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Echo Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple Echo Test</h1>
+    <p>This form tests the simple echo endpoint with no security or validation.</p>
+    
+    <div class="form-group">
+        <button id="testButton">Test Connection</button>
+    </div>
+    
+    <form id="echoForm">
+        <div class="form-group">
+            <label for="message">Message:</label>
+            <input type="text" id="message" name="message" value="Hello, world!">
+        </div>
+        <div class="form-group">
+            <label for="data">JSON Data:</label>
+            <textarea id="data" name="data" rows="10">{
+  "title": "Test Appointment",
+  "description": "This is a test appointment",
+  "appointmentDateTime": "2023-12-31T10:00:00.000Z",
+  "doctorId": 1,
+  "patientId": 2,
+  "isVideoConsultation": false,
+  "meetingLink": "",
+  "notes": "Test notes",
+  "status": "REQUESTED"
+}</textarea>
+        </div>
+        <button type="submit">Send Echo Request</button>
+    </form>
+    
+    <h2>Result:</h2>
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('testButton').addEventListener('click', function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing connection...';
+            
+            fetch('http://localhost:8080/simple/test')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = 'Error: ' + error.message;
+                    console.error('Error:', error);
+                });
+        });
+    
+        document.getElementById('echoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const message = document.getElementById('message').value;
+            let jsonData;
+            
+            try {
+                jsonData = JSON.parse(document.getElementById('data').value);
+            } catch (error) {
+                alert('Invalid JSON data: ' + error.message);
+                return;
+            }
+            
+            // Add the message to the JSON data
+            jsonData.message = message;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Sending request...';
+            
+            fetch('http://localhost:8080/simple/echo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>

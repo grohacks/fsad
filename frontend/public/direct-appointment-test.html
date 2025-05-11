@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Direct Appointment Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        cursor: pointer;
+        margin-right: 10px;
+      }
+      #result {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        background-color: #f9f9f9;
+        min-height: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Direct Appointment Test</h1>
+    <p>This page tests the direct appointment endpoint.</p>
+
+    <form id="appointmentForm">
+      <div class="form-group">
+        <label for="doctorId">Doctor ID:</label>
+        <input type="number" id="doctorId" name="doctorId" value="7" />
+      </div>
+      <div class="form-group">
+        <label for="patientId">Patient ID:</label>
+        <input type="number" id="patientId" name="patientId" value="6" />
+      </div>
+      <div class="form-group">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" value="Test Appointment" />
+      </div>
+      <div class="form-group">
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" rows="3">
+This is a test appointment description.</textarea
+        >
+      </div>
+      <div class="form-group">
+        <label for="appointmentDateTime">Appointment Date/Time:</label>
+        <input
+          type="datetime-local"
+          id="appointmentDateTime"
+          name="appointmentDateTime"
+          value="2025-05-10T10:00"
+        />
+      </div>
+      <div class="form-group">
+        <label for="isVideoConsultation">Video Consultation:</label>
+        <select id="isVideoConsultation" name="isVideoConsultation">
+          <option value="false">No</option>
+          <option value="true">Yes</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="meetingLink">Meeting Link:</label>
+        <input type="text" id="meetingLink" name="meetingLink" value="" />
+      </div>
+      <div class="form-group">
+        <label for="notes">Notes:</label>
+        <textarea id="notes" name="notes" rows="3"></textarea>
+      </div>
+      <button type="submit">Create Appointment</button>
+    </form>
+
+    <h2>Result:</h2>
+    <div id="result"></div>
+
+    <script>
+      // Test the direct-appointment endpoint first
+      fetch("http://localhost:8080/direct-appointment/test")
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok: " + response.status);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          console.log("Direct appointment test endpoint response:", data);
+          document.getElementById("result").innerHTML =
+            "<p>Test endpoint accessible: " + JSON.stringify(data) + "</p>";
+        })
+        .catch((error) => {
+          console.error("Error testing direct-appointment endpoint:", error);
+          document.getElementById("result").innerHTML =
+            "<p>Error testing endpoint: " + error.message + "</p>";
+        });
+
+      document
+        .getElementById("appointmentForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const formData = {
+            doctorId: parseInt(document.getElementById("doctorId").value),
+            patientId: parseInt(document.getElementById("patientId").value),
+            title: document.getElementById("title").value,
+            description: document.getElementById("description").value,
+            appointmentDateTime: new Date(
+              document.getElementById("appointmentDateTime").value
+            ).toISOString(),
+            isVideoConsultation:
+              document.getElementById("isVideoConsultation").value === "true",
+            meetingLink: document.getElementById("meetingLink").value,
+            notes: document.getElementById("notes").value,
+            // Explicitly NOT including status field to avoid the data truncation error
+          };
+
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = "Creating appointment...";
+
+          // Log the request data
+          console.log(
+            "Sending request to direct-appointment endpoint:",
+            JSON.stringify(formData, null, 2)
+          );
+
+          fetch("http://localhost:8080/direct-appointment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(
+                  "Network response was not ok: " + response.status
+                );
+              }
+              return response.json();
+            })
+            .then((data) => {
+              resultDiv.innerHTML =
+                "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            })
+            .catch((error) => {
+              resultDiv.innerHTML = "Error: " + error.message;
+              console.error("Error:", error);
+            });
+        });
+    </script>
+  </body>
+</html>

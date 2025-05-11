@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            min-height: 100px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Notification Test Page</h1>
+    <p>This page tests the notification system.</p>
+    
+    <div class="test-section">
+        <h2>1. Check Notifications</h2>
+        <div class="form-group">
+            <label for="checkUserId">User ID:</label>
+            <input type="number" id="checkUserId" name="checkUserId" value="7">
+        </div>
+        <button id="checkButton">Check Notifications</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Create Test Notification</h2>
+        <form id="createNotificationForm">
+            <div class="form-group">
+                <label for="userId">User ID:</label>
+                <input type="number" id="userId" name="userId" value="7">
+            </div>
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" value="Test Notification">
+            </div>
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" rows="3">This is a test notification message.</textarea>
+            </div>
+            <button type="submit">Create Notification</button>
+        </form>
+    </div>
+    
+    <h2>Result:</h2>
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('checkButton').addEventListener('click', function() {
+            const userId = document.getElementById('checkUserId').value;
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Checking notifications...';
+            
+            fetch(`http://localhost:8080/no-security/check-notifications/${userId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = 'Error: ' + error.message;
+                    console.error('Error:', error);
+                });
+        });
+    
+        document.getElementById('createNotificationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userId').value;
+            const title = document.getElementById('title').value;
+            const message = document.getElementById('message').value;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Creating notification...';
+            
+            fetch('http://localhost:8080/no-security/create-test-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId: parseInt(userId),
+                    title: title,
+                    message: message
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>

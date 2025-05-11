@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Public Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        cursor: pointer;
+        margin-right: 10px;
+      }
+      #result {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        background-color: #f9f9f9;
+        min-height: 100px;
+      }
+      .test-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      h2 {
+        margin-top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Public Test Page</h1>
+    <p>
+      This page tests various public endpoints with no security or validation.
+    </p>
+
+    <div class="test-section">
+      <h2>1. Public Test Controller</h2>
+      <div class="form-group">
+        <button id="pingButton">Test Ping</button>
+      </div>
+
+      <form id="echoForm">
+        <div class="form-group">
+          <label for="echoData">JSON Data:</label>
+          <textarea id="echoData" name="echoData" rows="10">
+{
+  "title": "Test Appointment",
+  "description": "This is a test appointment",
+  "appointmentDateTime": "2023-12-31T10:00:00.000Z",
+  "doctorId": 1,
+  "patientId": 2,
+  "isVideoConsultation": false,
+  "meetingLink": "",
+  "notes": "Test notes",
+  "status": "REQUESTED"
+}</textarea
+          >
+        </div>
+        <button type="submit">Send Echo Request</button>
+      </form>
+    </div>
+
+    <div class="test-section">
+      <h2>2. Simple Controller</h2>
+      <div class="form-group">
+        <button id="simpleTestButton">Test Simple</button>
+      </div>
+
+      <form id="simpleEchoForm">
+        <div class="form-group">
+          <label for="simpleEchoData">JSON Data:</label>
+          <textarea id="simpleEchoData" name="simpleEchoData" rows="10">
+{
+  "title": "Test Appointment",
+  "description": "This is a test appointment",
+  "appointmentDateTime": "2023-12-31T10:00:00.000Z",
+  "doctorId": 1,
+  "patientId": 2,
+  "isVideoConsultation": false,
+  "meetingLink": "",
+  "notes": "Test notes",
+  "status": "REQUESTED"
+}</textarea
+          >
+        </div>
+        <button type="submit">Send Simple Echo Request</button>
+      </form>
+    </div>
+
+    <div class="test-section">
+      <h2>3. No Security Controller</h2>
+      <div class="form-group">
+        <button id="noSecurityTestButton">Test No Security</button>
+      </div>
+
+      <form id="noSecurityEchoForm">
+        <div class="form-group">
+          <label for="noSecurityEchoData">JSON Data:</label>
+          <textarea id="noSecurityEchoData" name="noSecurityEchoData" rows="10">
+{
+  "title": "Test Appointment",
+  "description": "This is a test appointment",
+  "appointmentDateTime": "2023-12-31T10:00:00.000Z",
+  "doctorId": 1,
+  "patientId": 2,
+  "isVideoConsultation": false,
+  "meetingLink": "",
+  "notes": "Test notes",
+  "status": "REQUESTED"
+}</textarea
+          >
+        </div>
+        <button type="submit">Send No Security Echo Request</button>
+      </form>
+
+      <form id="noSecurityAppointmentForm" style="margin-top: 20px">
+        <div class="form-group">
+          <label for="noSecurityAppointmentData">Appointment Data:</label>
+          <textarea
+            id="noSecurityAppointmentData"
+            name="noSecurityAppointmentData"
+            rows="10"
+          >
+{
+  "title": "Test Appointment",
+  "description": "This is a test appointment",
+  "appointmentDateTime": "2023-12-31T10:00:00.000Z",
+  "doctorId": 1,
+  "patientId": 2,
+  "isVideoConsultation": false,
+  "meetingLink": "",
+  "notes": "Test notes",
+  "status": "REQUESTED"
+}</textarea
+          >
+        </div>
+        <button type="submit">Create Appointment (No Security)</button>
+      </form>
+    </div>
+
+    <h2>Result:</h2>
+    <div id="result"></div>
+
+    <script>
+      // Public Test Controller
+      document
+        .getElementById("pingButton")
+        .addEventListener("click", function () {
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = "Testing ping...";
+
+          fetch("http://localhost:8080/public-test/ping")
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(
+                  "Network response was not ok: " + response.status
+                );
+              }
+              return response.json();
+            })
+            .then((data) => {
+              resultDiv.innerHTML =
+                "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            })
+            .catch((error) => {
+              resultDiv.innerHTML = "Error: " + error.message;
+              console.error("Error:", error);
+            });
+        });
+
+      document
+        .getElementById("echoForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          let jsonData;
+
+          try {
+            jsonData = JSON.parse(document.getElementById("echoData").value);
+          } catch (error) {
+            alert("Invalid JSON data: " + error.message);
+            return;
+          }
+
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = "Sending echo request...";
+
+          fetch("http://localhost:8080/public-test/echo", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(jsonData),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(
+                  "Network response was not ok: " + response.status
+                );
+              }
+              return response.json();
+            })
+            .then((data) => {
+              resultDiv.innerHTML =
+                "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            })
+            .catch((error) => {
+              resultDiv.innerHTML = "Error: " + error.message;
+              console.error("Error:", error);
+            });
+        });
+
+      // Simple Controller
+      document
+        .getElementById("simpleTestButton")
+        .addEventListener("click", function () {
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = "Testing simple...";
+
+          fetch("http://localhost:8080/simple/test")
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(
+                  "Network response was not ok: " + response.status
+                );
+              }
+              return response.json();
+            })
+            .then((data) => {
+              resultDiv.innerHTML =
+                "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            })
+            .catch((error) => {
+              resultDiv.innerHTML = "Error: " + error.message;
+              console.error("Error:", error);
+            });
+        });
+
+      document
+        .getElementById("simpleEchoForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          let jsonData;
+
+          try {
+            jsonData = JSON.parse(
+              document.getElementById("simpleEchoData").value
+            );
+          } catch (error) {
+            alert("Invalid JSON data: " + error.message);
+            return;
+          }
+
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = "Sending simple echo request...";
+
+          fetch("http://localhost:8080/simple/echo", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(jsonData),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(
+                  "Network response was not ok: " + response.status
+                );
+              }
+              return response.json();
+            })
+            .then((data) => {
+              resultDiv.innerHTML =
+                "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            })
+            .catch((error) => {
+              resultDiv.innerHTML = "Error: " + error.message;
+              console.error("Error:", error);
+            });
+        });
+
+      // No Security Controller
+      document
+        .getElementById("noSecurityTestButton")
+        .addEventListener("click", function () {
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = "Testing no security...";
+
+          fetch("http://localhost:8080/no-security/test")
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(
+                  "Network response was not ok: " + response.status
+                );
+              }
+              return response.json();
+            })
+            .then((data) => {
+              resultDiv.innerHTML =
+                "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            })
+            .catch((error) => {
+              resultDiv.innerHTML = "Error: " + error.message;
+              console.error("Error:", error);
+            });
+        });
+
+      document
+        .getElementById("noSecurityEchoForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          let jsonData;
+
+          try {
+            jsonData = JSON.parse(
+              document.getElementById("noSecurityEchoData").value
+            );
+          } catch (error) {
+            alert("Invalid JSON data: " + error.message);
+            return;
+          }
+
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = "Sending no security echo request...";
+
+          fetch("http://localhost:8080/no-security/echo", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(jsonData),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(
+                  "Network response was not ok: " + response.status
+                );
+              }
+              return response.json();
+            })
+            .then((data) => {
+              resultDiv.innerHTML =
+                "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            })
+            .catch((error) => {
+              resultDiv.innerHTML = "Error: " + error.message;
+              console.error("Error:", error);
+            });
+        });
+
+      document
+        .getElementById("noSecurityAppointmentForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          let jsonData;
+
+          try {
+            jsonData = JSON.parse(
+              document.getElementById("noSecurityAppointmentData").value
+            );
+          } catch (error) {
+            alert("Invalid JSON data: " + error.message);
+            return;
+          }
+
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = "Creating appointment with no security...";
+
+          fetch("http://localhost:8080/no-security/appointment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(jsonData),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error(
+                  "Network response was not ok: " + response.status
+                );
+              }
+              return response.json();
+            })
+            .then((data) => {
+              resultDiv.innerHTML =
+                "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+            })
+            .catch((error) => {
+              resultDiv.innerHTML = "Error: " + error.message;
+              console.error("Error:", error);
+            });
+        });
+    </script>
+  </body>
+</html>
