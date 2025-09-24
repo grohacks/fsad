@@ -7,7 +7,7 @@ echo   Health Records - Tomcat Deployment
 echo ========================================
 
 REM Configuration
-set TOMCAT_HOME=C:\Program Files\Apache Software Foundation\Tomcat 10.0
+set TOMCAT_HOME=C:\Program Files\Apache Software Foundation\Tomcat 11.0
 set TOMCAT_WEBAPPS=%TOMCAT_HOME%\webapps
 set APP_NAME=health-records
 set WAR_FILE=%APP_NAME%.war
@@ -40,7 +40,7 @@ REM Step 2: Stop Tomcat
 echo.
 echo [2/6] Stopping Tomcat service...
 echo ========================================
-net stop Tomcat10 2>nul
+net stop Tomcat11 2>nul
 if errorlevel 1 (
     echo WARNING: Tomcat service was not running or failed to stop
 ) else (
@@ -80,7 +80,7 @@ REM Step 5: Start Tomcat
 echo.
 echo [5/6] Starting Tomcat service...
 echo ========================================
-net start Tomcat10
+net start Tomcat11
 if errorlevel 1 (
     echo ERROR: Failed to start Tomcat service
     pause

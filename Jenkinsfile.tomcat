@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         // Tomcat Configuration
-        TOMCAT_HOME = 'C:\\Program Files\\Apache Software Foundation\\Tomcat 10.0'
+        TOMCAT_HOME = 'C:\\Program Files\\Apache Software Foundation\\Tomcat 11.0'
         TOMCAT_WEBAPPS = "${TOMCAT_HOME}\\webapps"
         TOMCAT_MANAGER_URL = 'http://localhost:8080/manager'
         
@@ -112,7 +112,7 @@ pipeline {
                 echo "🛑 Stopping Tomcat server..."
                 bat '''
                     echo Stopping Tomcat service...
-                    net stop Tomcat10 2>nul || echo Tomcat service not running
+                    net stop Tomcat11 2>nul || echo Tomcat service not running
                     
                     echo Waiting for Tomcat to stop...
                     timeout /t 10 /nobreak
@@ -170,7 +170,7 @@ pipeline {
                 echo "🚀 Starting Tomcat server..."
                 bat '''
                     echo Starting Tomcat service...
-                    net start Tomcat10
+                    net start Tomcat11
                     
                     echo Waiting for Tomcat to start...
                     timeout /t 30 /nobreak
