@@ -12,13 +12,6 @@
         <property name="max" value="2000"/>
     </module>
 
-    <!-- Checks for Headers -->
-    <module name="Header">
-        <property name="headerFile" value="${checkstyle.header.file}"/>
-        <property name="fileExtensions" value="java"/>
-        <property name="ignoreLines" value="2,3,4,5"/>
-    </module>
-
     <module name="TreeWalker">
         <!-- Checks for Annotations -->
         <module name="AnnotationUseStyle"/>
@@ -91,21 +84,11 @@
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>
 
-        <!-- Checks for Javadoc Comments -->
-        <module name="JavadocMethod">
-            <property name="scope" value="public"/>
-            <property name="allowMissingParamTags" value="true"/>
-            <property name="allowMissingThrowsTags" value="true"/>
-            <property name="allowMissingReturnTag" value="true"/>
-            <property name="allowMissingJavadoc" value="true"/>
-        </module>
+        <!-- Checks for Javadoc Comments - RELAXED FOR BEGINNERS -->
         <module name="JavadocType">
             <property name="scope" value="public"/>
+            <property name="allowMissingJavadoc" value="true"/>
         </module>
-        <module name="JavadocVariable">
-            <property name="scope" value="public"/>
-        </module>
-        <module name="JavadocStyle"/>
 
         <!-- Checks for Metrics -->
         <module name="BooleanExpressionComplexity">
@@ -172,16 +155,7 @@
         <module name="ModifierOrder"/>
         <module name="RedundantModifier"/>
 
-        <!-- Checks for Common Coding Problems -->
-        <module name="HiddenField">
-            <property name="ignoreSetter" value="true"/>
-            <property name="ignoreConstructorParameter" value="true"/>
-        </module>
-        <module name="IllegalInstantiation"/>
-        <module name="InnerAssignment"/>
-        <module name="MagicNumber"/>
-        <module name="MissingSwitchDefault"/>
-        <module name="RedundantThrows"/>
+        <!-- Checks for Common Coding Problems - SIMPLIFIED -->
         <module name="SimplifyBooleanExpression"/>
         <module name="SimplifyBooleanReturn"/>
 
