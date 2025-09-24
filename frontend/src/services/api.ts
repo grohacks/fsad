@@ -1,13 +1,42 @@
 import axios from "axios";
+import axios from 'axios';
 import { mockChatbotApi } from "./mockChatbotApi";
 
 // Flag to use mock implementation for chatbot
 const USE_MOCK_CHATBOT = false;
 
 // Get API URLs from environment variables with fallbacks
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-const DIRECT_API_URL =
-  import.meta.env.VITE_DIRECT_API_URL || "http://localhost:8080";
+// When deployed to Tomcat, the app runs at /health-records context path
+const getApiBaseUrl = () => {
+  // Check if we're in production and running under a context path
+  const currentPath = window.location.pathname;
+  const isInTomcat = currentPath.startsWith('/health-records');
+  
+  if (isInTomcat) {
+    // Running in Tomcat with context path
+    return window.location.origin + '/health-records/api';
+  } else {
+    // Running standalone (development or standalone deployment)
+    return import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+  }
+};
+
+const getDirectApiUrl = () => {
+  // Check if we're in production and running under a context path
+  const currentPath = window.location.pathname;
+  const isInTomcat = currentPath.startsWith('/health-records');
+  
+  if (isInTomcat) {
+    // Running in Tomcat with context path
+    return window.location.origin + '/health-records';
+  } else {
+    // Running standalone (development or standalone deployment)
+    return import.meta.env.VITE_DIRECT_API_URL || "http://localhost:8080";
+  }
+};
+
+const API_URL = getApiBaseUrl();
+const DIRECT_API_URL = getDirectApiUrl();
 
 console.log("Using API URL:", API_URL);
 console.log("Using Direct API URL:", DIRECT_API_URL);
@@ -120,7 +149,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error("Request interceptor error:", error);
     }
     return Promise.reject(error);
