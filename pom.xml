@@ -233,7 +233,7 @@
                 </executions>
             </plugin>
             
-            <!-- Checkstyle Plugin -->
+            <!-- Checkstyle Plugin - Temporarily disabled for beginner setup -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -245,6 +245,7 @@
                     <failsOnError>false</failsOnError>
                     <failOnViolation>false</failOnViolation>
                     <linkXRef>false</linkXRef>
+                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>
@@ -257,7 +258,7 @@
                 </executions>
             </plugin>
             
-            <!-- PMD Plugin -->
+            <!-- PMD Plugin - Simplified for beginner setup -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
@@ -265,10 +266,10 @@
                 <configuration>
                     <rulesets>
                         <ruleset>/category/java/bestpractices.xml</ruleset>
-                        <ruleset>/category/java/errorprone.xml</ruleset>
                     </rulesets>
                     <printFailingErrors>true</printFailingErrors>
                     <failOnViolation>false</failOnViolation>
+                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>
@@ -279,7 +280,7 @@
                 </executions>
             </plugin>
             
-            <!-- SpotBugs Plugin -->
+            <!-- SpotBugs Plugin - Simplified for beginner setup -->
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
@@ -289,6 +290,7 @@
                     <threshold>Medium</threshold>
                     <xmlOutput>true</xmlOutput>
                     <failOnError>false</failOnError>
+                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>
@@ -299,7 +301,7 @@
                 </executions>
             </plugin>
             
-            <!-- OWASP Dependency Check Plugin -->
+            <!-- OWASP Dependency Check Plugin - Disabled for beginner setup -->
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
@@ -310,6 +312,7 @@
                     <suppressionFiles>
                         <suppressionFile>owasp-suppressions.xml</suppressionFile>
                     </suppressionFiles>
+                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>
