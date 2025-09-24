@@ -52,6 +52,26 @@ public class Appointment {
 
     private String meetingLink;
 
+    // Payment fields
+    @Column(name = "payment_amount", precision = 10, scale = 2)
+    private java.math.BigDecimal paymentAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status")
+    private PaymentStatus paymentStatus;
+
+    @Column(name = "payment_method", length = 50)
+    private String paymentMethod;
+
+    @Column(name = "payment_date")
+    private LocalDateTime paymentDate;
+
+    @Column(name = "payment_reference")
+    private String paymentReference;
+
+    @Column(name = "payment_notes", columnDefinition = "TEXT")
+    private String paymentNotes;
+
     @CreatedDate
     private LocalDateTime createdAt;
 
@@ -65,5 +85,11 @@ public class Appointment {
         CANCELLED,
         COMPLETED
         // NO_SHOW is not in the database schema
+    }
+
+    public enum PaymentStatus {
+        UNPAID,
+        PAID,
+        REFUNDED
     }
 }

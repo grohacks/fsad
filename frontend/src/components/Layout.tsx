@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -32,6 +32,7 @@ import {
   People as PeopleIcon,
   ChevronLeft as ChevronLeftIcon,
   Event as EventIcon,
+  Payment as PaymentIcon,
 } from "@mui/icons-material";
 import ChatbotButton from "./chatbot/ChatbotButton";
 import { RootState } from "../store";
@@ -108,6 +109,7 @@ const baseMenuItems = [
   { text: "Lab Reports", icon: <ScienceIcon />, path: "/lab-reports" },
   { text: "Prescriptions", icon: <PharmacyIcon />, path: "/prescriptions" },
   { text: "Appointments", icon: <EventIcon />, path: "/appointments" },
+  { text: "Payments", icon: <PaymentIcon />, path: "/payments" },
 ];
 
 // Admin-only menu items

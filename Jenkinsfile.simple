@@ -1,0 +1,172 @@
+pipeline {
+    agent any
+    
+    environment {
+        APP_NAME = 'health-records-system'
+        
+        // Update these paths according to your local setup
+        DEPLOY_DIR = 'C:\\health-records-deploy'  // Where to deploy the app
+        JAVA_HOME = 'C:\\Program Files\\Java\\jdk-21'  // Your Java path
+        
+        // Application will run on port 8080 (different from Tomcat's default 8080)
+        APP_PORT = '8080'
+        
+        // Process name for stopping previous instance
+        PROCESS_NAME = 'health-records'
+    }
+    
+    tools {
+        maven 'Maven'
+        nodejs 'NodeJS'
+    }
+    
+    stages {
+        stage('🔄 Checkout') {
+            steps {
+                echo "Pulling latest code from GitHub..."
+                checkout scm
+            }
+        }
+        
+        stage('🔨 Build Backend') {
+            steps {
+                echo "Building Spring Boot application..."
+                bat '''
+                    mvn clean package -DskipTests
+                '''
+                
+                // Archive the JAR file
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            }
+        }
+        
+        stage('🎨 Build Frontend') {
+            steps {
+                echo "Building React frontend..."
+                dir('frontend') {
+                    bat '''
+                        npm install
+                        npm run build
+                    '''
+                }
+                
+                // Archive frontend build
+                archiveArtifacts artifacts: 'frontend/dist/**', fingerprint: true
+            }
+        }
+        
+        stage('🛑 Stop Previous Instance') {
+            steps {
+                echo "Stopping previous application instance..."
+                bat '''
+                    @echo off
+                    echo Looking for existing health-records process...
+                    
+                    REM Kill any existing Java process running our app
+                    for /f "tokens=2" %%i in ('tasklist /FI "IMAGENAME eq java.exe" /FI "WINDOWTITLE eq health-records*" ^| find "java.exe"') do (
+                        echo Killing process %%i
+                        taskkill /PID %%i /F
+                    )
+                    
+                    REM Alternative: Kill by port if running on 8080
+                    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8080') do (
+                        echo Killing process on port 8080: %%a
+                        taskkill /PID %%a /F 2>nul
+                    )
+                    
+                    echo Previous instances stopped
+                '''
+            }
+        }
+        
+        stage('📦 Deploy Application') {
+            steps {
+                echo "Deploying application to local directory..."
+                bat """
+                    @echo off
+                    
+                    REM Create deployment directory
+                    if not exist "${DEPLOY_DIR}" mkdir "${DEPLOY_DIR}"
+                    if not exist "${DEPLOY_DIR}\\logs" mkdir "${DEPLOY_DIR}\\logs"
+                    
+                    REM Copy JAR file
+                    copy target\\*.jar "${DEPLOY_DIR}\\${APP_NAME}.jar"
+                    
+                    REM Copy frontend build to static directory
+                    if exist "${DEPLOY_DIR}\\static" rmdir /s /q "${DEPLOY_DIR}\\static"
+                    mkdir "${DEPLOY_DIR}\\static"
+                    xcopy /E /I frontend\\dist\\* "${DEPLOY_DIR}\\static\\"
+                    
+                    echo Deployment files copied successfully
+                """
+            }
+        }
+        
+        stage('🚀 Start Application') {
+            steps {
+                echo "Starting Health Records application..."
+                bat """
+                    @echo off
+                    cd /d "${DEPLOY_DIR}"
+                    
+                    REM Set environment variables
+                    set JAVA_HOME=${JAVA_HOME}
+                    set PATH=%JAVA_HOME%\\bin;%PATH%
+                    
+                    REM Start the application in background
+                    echo Starting application on port ${APP_PORT}...
+                    
+                    REM Create startup script
+                    echo @echo off > start_app.bat
+                    echo cd /d "${DEPLOY_DIR}" >> start_app.bat
+                    echo title health-records-app >> start_app.bat
+                    echo java -jar -Dserver.port=${APP_PORT} -Dspring.profiles.active=production ${APP_NAME}.jar >> start_app.bat
+                    
+                    REM Start the application
+                    start "health-records-app" cmd /c start_app.bat
+                    
+                    REM Wait a moment for startup
+                    timeout /t 10 /nobreak
+                    
+                    echo Application started. Check logs in ${DEPLOY_DIR}\\logs
+                """
+            }
+        }
+        
+        stage('✅ Health Check') {
+            steps {
+                echo "Performing health check..."
+                script {
+                    // Wait for application to start and perform health check
+                    bat """
+                        @echo off
+                        echo Waiting for application to start...
+                        timeout /t 30 /nobreak
+                        
+                        echo Checking if application is responding...
+                        curl -f http://localhost:${APP_PORT}/actuator/health || echo "Health check failed - check logs"
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo "Cleaning workspace..."
+            cleanWs()
+        }
+        
+        success {
+            echo "✅ Deployment completed successfully!"
+            echo "🌐 Application is running at: http://localhost:${APP_PORT}"
+            echo "📁 Deployment directory: ${DEPLOY_DIR}"
+            echo "📋 Frontend served from: ${DEPLOY_DIR}/static"
+        }
+        
+        failure {
+            echo "❌ Deployment failed!"
+            echo "📋 Check logs in Jenkins console and ${DEPLOY_DIR}/logs"
+        }
+    }
+}

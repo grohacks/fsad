@@ -20,6 +20,7 @@ import PrescriptionForm from "./pages/PrescriptionForm";
 import PrescriptionView from "./pages/PrescriptionView";
 import Users from "./pages/Users";
 import Appointments from "./pages/Appointments";
+import { PaymentsPage } from "./pages/PaymentsPage";
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, token } = useSelector(
@@ -67,6 +68,7 @@ const App = () => {
           <Route path="prescriptions/edit/:id" element={<PrescriptionForm />} />
           <Route path="prescriptions/:id" element={<PrescriptionView />} />
           <Route path="appointments" element={<Appointments />} />
+          <Route path="payments" element={<PaymentsPage />} />
           <Route path="users" element={<Users />} />
         </Route>
       </Routes>

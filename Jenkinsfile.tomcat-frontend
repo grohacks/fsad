@@ -1,0 +1,122 @@
+pipeline {
+    agent any
+    
+    environment {
+        APP_NAME = 'health-records-frontend'
+        
+        // Tomcat Configuration - Update these paths
+        TOMCAT_HOME = 'C:\\Program Files\\Apache Software Foundation\\Tomcat 9.0'
+        TOMCAT_WEBAPPS = "${TOMCAT_HOME}\\webapps"
+        FRONTEND_APP_DIR = "${TOMCAT_WEBAPPS}\\health-records"
+        
+        // Backend API URL
+        BACKEND_API_URL = 'http://localhost:8080'
+    }
+    
+    tools {
+        nodejs 'NodeJS'
+    }
+    
+    stages {
+        stage('🔄 Checkout Frontend') {
+            steps {
+                echo "Pulling frontend code from GitHub..."
+                checkout scm
+            }
+        }
+        
+        stage('📦 Install Dependencies') {
+            steps {
+                echo "Installing dependencies..."
+                bat '''
+                    npm install
+                '''
+            }
+        }
+        
+        stage('🎨 Build Frontend') {
+            steps {
+                echo "Building React frontend for Tomcat deployment..."
+                bat """
+                    REM Set environment variables for build
+                    set REACT_APP_API_URL=${BACKEND_API_URL}
+                    set PUBLIC_URL=/health-records
+                    
+                    REM Build the application
+                    npm run build
+                """
+            }
+        }
+        
+        stage('🛑 Stop Tomcat') {
+            steps {
+                echo "Stopping Tomcat server..."
+                bat '''
+                    @echo off
+                    REM Stop Tomcat service
+                    net stop Tomcat9 2>nul || echo "Tomcat was not running"
+                    
+                    REM Wait for shutdown
+                    timeout /t 5 /nobreak
+                '''
+            }
+        }
+        
+        stage('📦 Deploy to Tomcat') {
+            steps {
+                echo "Deploying frontend to Tomcat webapps..."
+                bat """
+                    @echo off
+                    
+                    REM Remove existing app directory
+                    if exist "${FRONTEND_APP_DIR}" rmdir /s /q "${FRONTEND_APP_DIR}"
+                    
+                    REM Create new app directory
+                    mkdir "${FRONTEND_APP_DIR}"
+                    
+                    REM Copy built files to Tomcat
+                    xcopy /E /I dist\\* "${FRONTEND_APP_DIR}\\"
+                    
+                    echo Frontend files copied to Tomcat webapps
+                """
+            }
+        }
+        
+        stage('🚀 Start Tomcat') {
+            steps {
+                echo "Starting Tomcat server..."
+                bat '''
+                    @echo off
+                    REM Start Tomcat service
+                    net start Tomcat9
+                    
+                    REM Wait for startup
+                    timeout /t 15 /nobreak
+                '''
+            }
+        }
+        
+        stage('✅ Health Check') {
+            steps {
+                echo "Checking deployment..."
+                bat '''
+                    timeout /t 30 /nobreak
+                    curl -f http://localhost:8080/health-records/ || echo "Frontend health check failed"
+                '''
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "✅ Frontend deployed to Tomcat successfully!"
+            echo "🌐 Frontend URL: http://localhost:8080/health-records/"
+            echo "🔗 Backend API: ${BACKEND_API_URL}"
+        }
+        failure {
+            echo "❌ Frontend deployment to Tomcat failed!"
+            // Try to restart Tomcat anyway
+            bat 'net start Tomcat9 2>nul || echo "Could not start Tomcat"'
+        }
+    }
+}

@@ -1,0 +1,124 @@
+pipeline {
+    agent any
+    
+    environment {
+        APP_NAME = 'health-records-backend'
+        
+        // Update these paths according to your local setup
+        DEPLOY_DIR = 'C:\\health-records-deploy\\backend'
+        JAVA_HOME = 'C:\\Program Files\\Java\\jdk-17'
+        
+        // Backend will run on port 8080
+        APP_PORT = '8080'
+    }
+    
+    tools {
+        maven 'Maven'
+    }
+    
+    stages {
+        stage('🔄 Checkout Backend') {
+            steps {
+                echo "Pulling backend code from GitHub..."
+                checkout scm
+            }
+        }
+        
+        stage('🧪 Run Tests') {
+            steps {
+                echo "Running backend tests..."
+                bat '''
+                    mvn test
+                '''
+                
+                // Publish test results
+                publishTestResults testResultsPattern: 'target/surefire-reports/*.xml'
+            }
+        }
+        
+        stage('🔨 Build Backend') {
+            steps {
+                echo "Building Spring Boot backend..."
+                bat '''
+                    mvn clean package -DskipTests
+                '''
+                
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            }
+        }
+        
+        stage('🛑 Stop Previous Backend') {
+            steps {
+                echo "Stopping previous backend instance..."
+                bat '''
+                    @echo off
+                    REM Kill process running on port 8080
+                    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8080') do (
+                        echo Killing backend process: %%a
+                        taskkill /PID %%a /F 2>nul
+                    )
+                    echo Previous backend stopped
+                '''
+            }
+        }
+        
+        stage('📦 Deploy Backend') {
+            steps {
+                echo "Deploying backend..."
+                bat """
+                    @echo off
+                    
+                    REM Create deployment directory
+                    if not exist "${DEPLOY_DIR}" mkdir "${DEPLOY_DIR}"
+                    if not exist "${DEPLOY_DIR}\\logs" mkdir "${DEPLOY_DIR}\\logs"
+                    
+                    REM Copy JAR file
+                    copy target\\*.jar "${DEPLOY_DIR}\\${APP_NAME}.jar"
+                    
+                    echo Backend deployed successfully
+                """
+            }
+        }
+        
+        stage('🚀 Start Backend') {
+            steps {
+                echo "Starting backend service..."
+                bat """
+                    @echo off
+                    cd /d "${DEPLOY_DIR}"
+                    
+                    REM Create startup script
+                    echo @echo off > start_backend.bat
+                    echo cd /d "${DEPLOY_DIR}" >> start_backend.bat
+                    echo title health-records-backend >> start_backend.bat
+                    echo java -jar -Dserver.port=${APP_PORT} -Dspring.profiles.active=production ${APP_NAME}.jar >> start_backend.bat
+                    
+                    REM Start the backend
+                    start "health-records-backend" cmd /c start_backend.bat
+                    
+                    timeout /t 15 /nobreak
+                """
+            }
+        }
+        
+        stage('✅ Backend Health Check') {
+            steps {
+                echo "Checking backend health..."
+                bat """
+                    timeout /t 30 /nobreak
+                    curl -f http://localhost:${APP_PORT}/actuator/health || echo "Backend health check failed"
+                """
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "✅ Backend deployment successful!"
+            echo "🌐 Backend API: http://localhost:${APP_PORT}"
+        }
+        failure {
+            echo "❌ Backend deployment failed!"
+        }
+    }
+}

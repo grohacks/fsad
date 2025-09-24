@@ -1,0 +1,147 @@
+pipeline {
+    agent any
+    
+    environment {
+        APP_NAME = 'health-records-frontend'
+        
+        // Update these paths according to your local setup
+        DEPLOY_DIR = 'C:\\health-records-deploy\\frontend'
+        
+        // Frontend will be served on port 3000 or through Tomcat
+        FRONTEND_PORT = '3000'
+        
+        // Backend API URL (where your backend is running)
+        BACKEND_API_URL = 'http://localhost:8080'
+    }
+    
+    tools {
+        nodejs 'NodeJS'
+    }
+    
+    stages {
+        stage('🔄 Checkout Frontend') {
+            steps {
+                echo "Pulling frontend code from GitHub..."
+                checkout scm
+            }
+        }
+        
+        stage('📦 Install Dependencies') {
+            steps {
+                echo "Installing frontend dependencies..."
+                bat '''
+                    npm install
+                '''
+            }
+        }
+        
+        stage('🧪 Run Frontend Tests') {
+            steps {
+                echo "Running frontend tests..."
+                bat '''
+                    npm test -- --coverage --watchAll=false
+                '''
+            }
+        }
+        
+        stage('🎨 Build Frontend') {
+            steps {
+                echo "Building React frontend for production..."
+                bat """
+                    REM Set backend API URL for production build
+                    set REACT_APP_API_URL=${BACKEND_API_URL}
+                    
+                    REM Build the application
+                    npm run build
+                """
+                
+                archiveArtifacts artifacts: 'dist/**', fingerprint: true
+            }
+        }
+        
+        stage('🛑 Stop Previous Frontend') {
+            steps {
+                echo "Stopping previous frontend instance..."
+                bat '''
+                    @echo off
+                    REM Kill any process running on frontend port
+                    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000') do (
+                        echo Killing frontend process: %%a
+                        taskkill /PID %%a /F 2>nul
+                    )
+                    echo Previous frontend stopped
+                '''
+            }
+        }
+        
+        stage('📦 Deploy Frontend') {
+            steps {
+                echo "Deploying frontend..."
+                bat """
+                    @echo off
+                    
+                    REM Create deployment directory
+                    if not exist "${DEPLOY_DIR}" mkdir "${DEPLOY_DIR}"
+                    
+                    REM Remove old files and copy new build
+                    if exist "${DEPLOY_DIR}\\*" del /Q "${DEPLOY_DIR}\\*"
+                    xcopy /E /I dist\\* "${DEPLOY_DIR}\\"
+                    
+                    echo Frontend deployed successfully
+                """
+            }
+        }
+        
+        stage('🚀 Start Frontend Server') {
+            steps {
+                echo "Starting frontend server..."
+                bat """
+                    @echo off
+                    cd /d "${DEPLOY_DIR}"
+                    
+                    REM Create a simple HTTP server using Node.js
+                    echo const express = require('express'); > server.js
+                    echo const path = require('path'); >> server.js
+                    echo const app = express(); >> server.js
+                    echo const PORT = ${FRONTEND_PORT}; >> server.js
+                    echo app.use(express.static('.')); >> server.js
+                    echo app.get('*', (req, res) =^> { >> server.js
+                    echo   res.sendFile(path.join(__dirname, 'index.html')); >> server.js
+                    echo }); >> server.js
+                    echo app.listen(PORT, () =^> { >> server.js
+                    echo   console.log('Frontend server running on port ' + PORT); >> server.js
+                    echo }); >> server.js
+                    
+                    REM Install express if not present
+                    if not exist node_modules\\express npm install express
+                    
+                    REM Start the frontend server
+                    start "health-records-frontend" cmd /c "node server.js"
+                    
+                    timeout /t 10 /nobreak
+                """
+            }
+        }
+        
+        stage('✅ Frontend Health Check') {
+            steps {
+                echo "Checking frontend availability..."
+                bat """
+                    timeout /t 15 /nobreak
+                    curl -f http://localhost:${FRONTEND_PORT} || echo "Frontend health check failed"
+                """
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "✅ Frontend deployment successful!"
+            echo "🌐 Frontend URL: http://localhost:${FRONTEND_PORT}"
+            echo "🔗 Backend API: ${BACKEND_API_URL}"
+        }
+        failure {
+            echo "❌ Frontend deployment failed!"
+        }
+    }
+}

@@ -67,6 +67,13 @@ export interface Appointment {
   meetingLink?: string;
   createdAt: string;
   updatedAt: string;
+  // Payment fields
+  paymentAmount?: number;
+  paymentStatus?: "UNPAID" | "PAID" | "REFUNDED";
+  paymentMethod?: string;
+  paymentDate?: string;
+  paymentReference?: string;
+  paymentNotes?: string;
 }
 
 export type NotificationType =
@@ -101,3 +108,6 @@ export interface ApiResponse<T> {
   message: string;
   success: boolean;
 }
+
+// Payment related types
+export * from './payment';
