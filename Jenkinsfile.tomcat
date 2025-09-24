@@ -1,0 +1,263 @@
+pipeline {
+    agent any
+    
+    environment {
+        // Tomcat Configuration
+        TOMCAT_HOME = 'C:\\Program Files\\Apache Software Foundation\\Tomcat 10.0'
+        TOMCAT_WEBAPPS = "${TOMCAT_HOME}\\webapps"
+        TOMCAT_MANAGER_URL = 'http://localhost:8080/manager'
+        
+        // Build Configuration
+        JAVA_HOME = 'C:\\Program Files\\Java\\jdk-21'
+        APP_NAME = 'health-records'
+        WAR_FILE = "${APP_NAME}.war"
+        
+        // Frontend Configuration
+        NODE_HOME = 'C:\\Program Files\\nodejs'
+        
+        // Build Directory
+        BUILD_DIR = 'C:\\health-records-build'
+    }
+    
+    stages {
+        stage('🔧 Environment Setup') {
+            steps {
+                echo "🔧 Setting up build environment..."
+                bat '''
+                    echo Java Version:
+                    "%JAVA_HOME%\\bin\\java" -version
+                    echo Maven Version:
+                    mvn -version
+                    echo Node Version:
+                    "%NODE_HOME%\\node" -version
+                    echo NPM Version:
+                    "%NODE_HOME%\\npm" -version
+                '''
+            }
+        }
+        
+        stage('📦 Checkout Code') {
+            steps {
+                echo "📦 Checking out source code..."
+                checkout scm
+            }
+        }
+        
+        stage('🏗️ Build Backend WAR') {
+            steps {
+                echo "🏗️ Building Spring Boot WAR file..."
+                bat '''
+                    echo Building WAR file for Tomcat deployment...
+                    mvn clean package -DskipTests -Dspring.profiles.active=production
+                    
+                    echo Checking if WAR file was created...
+                    if exist "target\\%WAR_FILE%" (
+                        echo ✅ WAR file created successfully: target\\%WAR_FILE%
+                        dir target\\*.war
+                    ) else (
+                        echo ❌ WAR file not found!
+                        dir target\\
+                        exit /b 1
+                    )
+                '''
+            }
+        }
+        
+        stage('🎨 Build Frontend') {
+            steps {
+                echo "🎨 Building React frontend..."
+                dir('frontend') {
+                    bat '''
+                        echo Installing frontend dependencies...
+                        "%NODE_HOME%\\npm" install
+                        
+                        echo Building production frontend...
+                        "%NODE_HOME%\\npm" run build
+                        
+                        echo Checking build output...
+                        if exist "dist" (
+                            echo ✅ Frontend build successful
+                            dir dist
+                        ) else (
+                            echo ❌ Frontend build failed!
+                            exit /b 1
+                        )
+                    '''
+                }
+            }
+        }
+        
+        stage('📁 Prepare Deployment Directory') {
+            steps {
+                echo "📁 Preparing deployment directory..."
+                bat '''
+                    echo Creating build directory...
+                    if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+                    
+                    echo Copying WAR file...
+                    copy "target\\%WAR_FILE%" "%BUILD_DIR%\\"
+                    
+                    echo Copying frontend assets...
+                    if exist "%BUILD_DIR%\\static" rmdir /s /q "%BUILD_DIR%\\static"
+                    xcopy "frontend\\dist" "%BUILD_DIR%\\static\\" /E /I /Y
+                    
+                    echo Build directory contents:
+                    dir "%BUILD_DIR%"
+                '''
+            }
+        }
+        
+        stage('🛑 Stop Tomcat') {
+            steps {
+                echo "🛑 Stopping Tomcat server..."
+                bat '''
+                    echo Stopping Tomcat service...
+                    net stop Tomcat10 2>nul || echo Tomcat service not running
+                    
+                    echo Waiting for Tomcat to stop...
+                    timeout /t 10 /nobreak
+                    
+                    echo Checking if Tomcat process is still running...
+                    taskkill /f /im java.exe 2>nul || echo No Java processes to kill
+                '''
+            }
+        }
+        
+        stage('🗑️ Undeploy Previous Version') {
+            steps {
+                echo "🗑️ Removing previous deployment..."
+                bat '''
+                    echo Removing old WAR file...
+                    if exist "%TOMCAT_WEBAPPS%\\%WAR_FILE%" (
+                        del "%TOMCAT_WEBAPPS%\\%WAR_FILE%"
+                        echo ✅ Old WAR file removed
+                    ) else (
+                        echo No previous WAR file found
+                    )
+                    
+                    echo Removing old application directory...
+                    if exist "%TOMCAT_WEBAPPS%\\%APP_NAME%" (
+                        rmdir /s /q "%TOMCAT_WEBAPPS%\\%APP_NAME%"
+                        echo ✅ Old application directory removed
+                    ) else (
+                        echo No previous application directory found
+                    )
+                '''
+            }
+        }
+        
+        stage('📦 Deploy to Tomcat') {
+            steps {
+                echo "📦 Deploying application to Tomcat..."
+                bat '''
+                    echo Copying WAR file to Tomcat webapps...
+                    copy "%BUILD_DIR%\\%WAR_FILE%" "%TOMCAT_WEBAPPS%\\"
+                    
+                    echo Verifying WAR file deployment...
+                    if exist "%TOMCAT_WEBAPPS%\\%WAR_FILE%" (
+                        echo ✅ WAR file deployed successfully
+                        dir "%TOMCAT_WEBAPPS%\\%WAR_FILE%"
+                    ) else (
+                        echo ❌ WAR file deployment failed!
+                        exit /b 1
+                    )
+                '''
+            }
+        }
+        
+        stage('🚀 Start Tomcat') {
+            steps {
+                echo "🚀 Starting Tomcat server..."
+                bat '''
+                    echo Starting Tomcat service...
+                    net start Tomcat10
+                    
+                    echo Waiting for Tomcat to start...
+                    timeout /t 30 /nobreak
+                    
+                    echo Checking Tomcat status...
+                    netstat -an | findstr :8080 || echo Tomcat might still be starting...
+                '''
+            }
+        }
+        
+        stage('✅ Health Check') {
+            steps {
+                echo "✅ Performing health check..."
+                script {
+                    def maxRetries = 12
+                    def retryCount = 0
+                    def success = false
+                    
+                    while (retryCount < maxRetries && !success) {
+                        try {
+                            bat '''
+                                echo Attempt %((retryCount+1)) of %maxRetries%: Checking application health...
+                                
+                                echo Checking Tomcat Manager...
+                                curl -f http://localhost:8080/ && echo ✅ Tomcat is running
+                                
+                                echo Checking if application is deployed...
+                                curl -f http://localhost:8080/%APP_NAME%/ && echo ✅ Application is accessible
+                            '''
+                            success = true
+                        } catch (Exception e) {
+                            retryCount++
+                            if (retryCount < maxRetries) {
+                                echo "Health check failed (attempt ${retryCount}/${maxRetries}). Retrying in 10 seconds..."
+                                bat 'timeout /t 10 /nobreak'
+                            } else {
+                                echo "❌ Health check failed after ${maxRetries} attempts"
+                                throw e
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo "🧹 Cleaning up workspace..."
+            cleanWs()
+        }
+        success {
+            echo """
+🎉 Deployment Successful! 🎉
+
+📱 Your Health Records application is now deployed to Tomcat!
+
+🔗 Access your application:
+   • Main App: http://localhost:8080/${APP_NAME}
+   • Tomcat Manager: http://localhost:8080/manager
+   
+📋 Deployment Details:
+   • WAR File: ${WAR_FILE}
+   • Location: ${TOMCAT_WEBAPPS}
+   • Build Time: ${new Date()}
+   
+🎯 Next Steps:
+   1. Open http://localhost:8080/manager to see your deployed app
+   2. Access your app at http://localhost:8080/${APP_NAME}
+   3. Test the functionality
+"""
+        }
+        failure {
+            echo """
+❌ Deployment Failed! ❌
+
+📋 Check the following:
+   1. Tomcat service is installed and running
+   2. Port 8080 is not blocked
+   3. WAR file was built successfully
+   4. Database is accessible
+   
+🔍 Troubleshooting:
+   • Check Jenkins console logs above
+   • Verify Tomcat logs in: ${TOMCAT_HOME}\\logs
+   • Check application logs for errors
+"""
+        }
+    }
+}
